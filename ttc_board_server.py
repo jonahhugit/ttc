@@ -78,18 +78,27 @@ if __name__ == "__main__":
             padding: 1em 2em;
             display: flex;
             align-items: center;
+            justify-content: space-between;
             flex-shrink: 0;
         }
-        .header img {
+        .header-left {
+            display: flex;
+            align-items: center;
+        }
+        .header-left img {
             height: 2.2em;
             margin-right: 1em;
         }
-        .header .title {
+        .header-left .title {
             font-size: 2em;
             font-weight: bold;
         }
-        .header .subtitle {
+        .header-left .subtitle {
             font-size: 1em;
+        }
+        .clock {
+            font-size: 2em;
+            font-weight: bold;
         }
         .content {
             flex: 1;
@@ -131,7 +140,7 @@ if __name__ == "__main__":
             font-weight: bold;
         }
         .departure-box .small {
-            font-size: 1.2em;
+            font-size: 1.8em;
             margin-top: 0.5em;
         }
         .soon {
@@ -144,11 +153,14 @@ if __name__ == "__main__":
 </head>
 <body>
     <div class=\"header\">
-        <img src=\"https://upload.wikimedia.org/wikipedia/commons/e/e3/Logo_of_the_Toronto_Transit_Commission.svg\" alt=\"TTC Logo\">
-        <div>
-            <div class=\"title\">Next Departures</div>
-            <div class=\"subtitle\" id=\"last-updated\">Updated just now</div>
+        <div class=\"header-left\">
+            <img src=\"https://upload.wikimedia.org/wikipedia/commons/e/e3/Logo_of_the_Toronto_Transit_Commission.svg\" alt=\"TTC Logo\">
+            <div>
+                <div class=\"title\">Next Departures</div>
+                <div class=\"subtitle\" id=\"last-updated\">Updated just now</div>
+            </div>
         </div>
+        <div class=\"clock\" id=\"current-time\"></div>
     </div>
     <div class=\"content\" id=\"content\"></div>
 
@@ -159,6 +171,15 @@ if __name__ == "__main__":
             const subtitle = document.getElementById("last-updated");
             const diff = Math.floor((Date.now() - lastUpdated) / 60000);
             subtitle.textContent = diff === 0 ? "Updated just now" : "Updated " + diff + " minute" + (diff > 1 ? "s" : "") + " ago";
+        }
+
+        function updateClock() {
+            const clock = document.getElementById("current-time");
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const seconds = now.getSeconds().toString().padStart(2, '0');
+            clock.textContent = `${hours}:${minutes}:${seconds}`;
         }
 
         async function loadDepartures() {
@@ -206,8 +227,10 @@ if __name__ == "__main__":
         }
 
         loadDepartures();
+        updateClock();
         setInterval(loadDepartures, 60000);
         setInterval(updateTimestamp, 10000);
+        setInterval(updateClock, 1000);
     </script>
 </body>
 </html>
