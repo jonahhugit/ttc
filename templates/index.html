@@ -1,0 +1,158 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TTC Board</title>
+    <meta http-equiv="refresh" content="60">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: Verdana, sans-serif;
+            background-color: #000;
+            color: #fff;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            background-color: #cc0000;
+            padding: 1em 2em;
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .header img {
+            height: 2.2em;
+            margin-right: 1em;
+        }
+        .header .title {
+            font-size: 2em;
+            font-weight: bold;
+        }
+        .header .subtitle {
+            font-size: 1em;
+        }
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 1em;
+        }
+        .stop-section {
+            margin-bottom: 3em;
+        }
+        .stop-title {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 1em;
+        }
+        .departure-row {
+            display: flex;
+            gap: 1em;
+        }
+        .departure-box {
+            flex: 1;
+            background-color: #222;
+            border-radius: 1em;
+            padding: 1em;
+            text-align: center;
+            min-width: 5em;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 7em;
+        }
+        .departure-box.empty {
+            background-color: transparent;
+        }
+        .departure-box .large {
+            font-size: 3.5em;
+            font-weight: bold;
+        }
+        .departure-box .small {
+            font-size: 1.2em;
+            margin-top: 0.5em;
+        }
+        .soon {
+            background-color: #cc0000 !important;
+        }
+        .moderate {
+            background-color: #003300 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/e/e3/Logo_of_the_Toronto_Transit_Commission.svg" alt="TTC Logo">
+        <div>
+            <div class="title">Next Departures</div>
+            <div class="subtitle" id="last-updated">Updated just now</div>
+        </div>
+    </div>
+    <div class="content" id="content"></div>
+
+    <script>
+        let lastUpdated = Date.now();
+
+        function updateTimestamp() {
+            const subtitle = document.getElementById("last-updated");
+            const diff = Math.floor((Date.now() - lastUpdated) / 60000);
+            subtitle.textContent = diff === 0 ? "Updated just now" : "Updated " + diff + " minute" + (diff > 1 ? "s" : "") + " ago";
+        }
+
+        async function loadDepartures() {
+            const res = await fetch("/api/departures");
+            const data = await res.json();
+            const content = document.getElementById("content");
+            content.innerHTML = "";
+
+            const stopConfigs = {
+                "15462": "504A King - To Dundas West Station",
+                "6604": "121 Esplanade-River - To Union Station"
+            };
+
+            for (const stopId of ["15462", "6604"]) {
+                const stopDiv = document.createElement("div");
+                stopDiv.className = "stop-section";
+                const title = document.createElement("div");
+                title.className = "stop-title";
+                title.textContent = stopConfigs[stopId];
+
+                const departures = data[stopId].slice(0, 3);
+                const row = document.createElement("div");
+                row.className = "departure-row";
+
+                for (let i = 0; i < 3; i++) {
+                    let box = document.createElement("div");
+                    if (departures[i]) {
+                        const dep = departures[i];
+                        const cls = dep.minutes < 5 ? "soon" : dep.minutes <= 10 ? "moderate" : "";
+                        box.className = `departure-box ${cls}`;
+                        box.innerHTML = `<div class='large'>${dep.minutes} min</div><div class='small'>${dep.departure_time}</div>`;
+                    } else {
+                        box.className = "departure-box empty";
+                    }
+                    row.appendChild(box);
+                }
+
+                stopDiv.appendChild(title);
+                stopDiv.appendChild(row);
+                content.appendChild(stopDiv);
+            }
+
+            lastUpdated = Date.now();
+            updateTimestamp();
+        }
+
+        loadDepartures();
+        setInterval(loadDepartures, 60000);
+        setInterval(updateTimestamp, 10000);
+    </script>
+</body>
+</html>
