@@ -7,16 +7,22 @@ import xml.etree.ElementTree as ET
 
 app = Flask(__name__, template_folder="templates")
 
-STOP_IDS = ["15462", "6604"]
-NEXTBUS_URL_TEMPLATE = "https://webservices.nextbus.com/service/publicXMLFeed?command=predictions&a=ttc&stopId={stop_id}"
+STOP_CONFIGS = [
+    {"stop_id": "15460", "label": "504A King - To Dundas West Station", "adjust_minutes": -1},
+    {"stop_id": "6604", "label": "121 Esplanade-River - To Union Station", "adjust_minutes": 0}
+]
 
 @app.route("/api/departures")
 def get_departures():
-    departures_by_stop = {"15462": [], "6604": []}
-    now = datetime.datetime.now()
+    departures_by_stop = {conf["stop_id"]: [] for conf in STOP_CONFIGS}
 
-    for stop_id in STOP_IDS:
-        url = NEXTBUS_URL_TEMPLATE.format(stop_id=stop_id)
+    for conf in STOP_CONFIGS:
+        stop_id = conf["stop_id"]
+        label = conf["label"]
+        adjust = conf["adjust_minutes"]
+
+        url = f"https://webservices.nextbus.com/service/publicXMLFeed?command=predictions&a=ttc&stopId={stop_id}"
+
         try:
             response = requests.get(url)
             root = ET.fromstring(response.content)
@@ -27,9 +33,10 @@ def get_departures():
 
                 for direction in preds.findall("direction"):
                     for p in direction.findall("prediction"):
-                        minutes = int(p.attrib.get("minutes", "-1"))
+                        minutes = int(p.attrib.get("minutes", "-1")) + adjust
+                        minutes = max(0, minutes)
                         epoch_time = int(p.attrib.get("epochTime", "0"))
-                        dep_time = datetime.datetime.fromtimestamp(epoch_time / 1000)
+                        dep_time = datetime.datetime.fromtimestamp(epoch_time / 1000) + datetime.timedelta(minutes=adjust)
 
                         departures_by_stop[stop_id].append({
                             "stop_id": stop_id,
@@ -189,11 +196,11 @@ if __name__ == "__main__":
             content.innerHTML = "";
 
             const stopConfigs = {
-                "15462": "504A King - To Dundas West Station",
+                "15460": "504A King - To Dundas West Station",
                 "6604": "121 Esplanade-River - To Union Station"
             };
 
-            for (const stopId of ["15462", "6604"]) {
+            for (const stopId of ["15460", "6604"]) {
                 const stopDiv = document.createElement("div");
                 stopDiv.className = "stop-section";
                 const title = document.createElement("div");
